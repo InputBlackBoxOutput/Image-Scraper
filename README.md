@@ -21,6 +21,12 @@ usage: imscraper.py [-h] (-k K | -f F) [-se SE] [-n N] [-p P] [-s S] [-o O]
 
 [Read a detailed manual](https://rutuparn.medium.com/9cf9a5950594?source=friends_link&sk=7e353dd0ffe00a765d97fd508656fc61)
 
+## Run the scraper on the cloud
+|Platform|Notebook link|
+|--|--|
+|Google Colab|https://colab.research.google.com/drive/1ZnuGgv5KI5-EXaAnpXHB7q--osSOQWER?usp=sharing|
+|Kaggle|https://www.kaggle.com/inputblackboxoutput/image-scraper|
+
 ### Disclaimer
 It is advised to use this image scraper for learning/research purposes only.
 
