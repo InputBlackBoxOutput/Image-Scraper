@@ -1,3 +1,7 @@
+# Image-Scraper
+
+![](demo.gif)
+
 ## Features
 1. Images are searched on the web using the following search engines: Google, Bing, Yahoo and DuckDuckGo
 1. A file containing a list of keywords can be passed to the program when multiple keywords need to be scraped
