@@ -177,7 +177,7 @@ def scrape_images(keyword, search_engine, output_directory, num_images=None):
 
 
 def main(keyword, search_engine, out_dir, num_images):
-	print('\n' + '-' * 100)
+	print('\n' + '-' * 80)
 	print(f"Keyword: {keyword}")
 
 	create_output_directory(keyword, out_dir)
@@ -186,12 +186,16 @@ def main(keyword, search_engine, out_dir, num_images):
 	if search_engine != "all":
 		scrape_images(keyword=keyword, search_engine=search_engine, output_directory=output_directory, num_images=num_images)
 	else:
-		num_images = [num_images // 4 + (1 if x < num_images % 4 else 0)  for x in range (4)]
-		for i, each_se in enumerate(['google', 'bing', 'yahoo', 'duckduckgo']):
-			scrape_images(keyword=keyword, search_engine=each_se, output_directory=output_directory, num_images=num_images[i])
+		if num_images != None:
+			num_images = [num_images // 4 + (1 if x < num_images % 4 else 0)  for x in range (4)]
+			for i, each_se in enumerate(['google', 'bing', 'yahoo', 'duckduckgo']):
+				scrape_images(keyword=keyword, search_engine=each_se, output_directory=output_directory, num_images=num_images[i])
+		else:
+			for each_se in ['google', 'bing', 'yahoo', 'duckduckgo']:
+				scrape_images(keyword=keyword, search_engine=each_se, output_directory=output_directory, num_images=num_images)
 		
 	remove_duplicate_images(output_directory)
-	print('-' * 100)
+	print('-' * 80)
 
 if __name__ == "__main__":
 	browser = setup_browser()
@@ -203,12 +207,12 @@ if __name__ == "__main__":
 		sys.exit()
 
 	if args.f == None:
-		try:
-			keyword = add_prefix_suffix(args.k, prefix=args.p, suffix=args.s)
-			main(keyword, args.se, args.o, args.n)
-		except:
-			print("Something went wrong!")
-			sys.exit()
+		# try:
+		keyword = add_prefix_suffix(args.k, prefix=args.p, suffix=args.s)
+		main(keyword, args.se, args.o, args.n)
+		# except:
+			# print("Something went wrong!")
+			# sys.exit()
 	else:
 		try:
 			with open(args.f, 'r') as infile:
