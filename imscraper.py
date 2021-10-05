@@ -1,4 +1,4 @@
-import os, platform, sys, argparse
+import os, platform, sys, argparse, glob
 import time
 import base64
 import hashlib
@@ -33,22 +33,21 @@ def sha256(fname, size=4096):
 	return sha256_hash.hexdigest()
 
 # Find difference between files using SHA-256 and remove duplicates
-def remove_duplicate_images(dir):
+def remove_duplicate_images(directory):
 	print("\nChecking for duplicate images by comparing SHA-256 hash")
 	flag = False
 
-	fileList = list(os.walk(dir))[0][-1]
+	file_list = glob.glob(f"{directory}/*.png")
 
 	unique = []
-	for file in fileList:
-		filepath = os.path.join(dir, file)
-		filehash = sha256(filepath)
+	for file in file_list:
+		filehash = sha256(file)
 
 		if filehash not in unique:
 			unique.append(filehash)
 		else:
-			print(f"Removing duplicate image: {filepath}")
-			os.remove(filepath)	
+			print(f"Removing duplicate image: {file}")
+			os.remove(file)	
 			flag = True
 			
 	if flag == False:
@@ -85,20 +84,11 @@ class Extractor(HTMLParser):
 
 # Create output directory if it does not exist
 def create_output_directory(keyword, out_dir=None):
-	try:
-		if out_dir == None:
-			os.mkdir(keyword)		
-		else:
-			# If output directory does not exist create it
-			try:
-				os.mkdir(out_dir)
-			except:
-				pass
-
-			os.mkdir(f"{out_dir}/{keyword}")
-
-	except FileExistsError:
-		pass
+	if out_dir == None:
+		os.makedirs(keyword, exist_ok=True)		
+	else:
+		os.makedirs(out_dir, exist_ok=True)
+		os.makedirs(f"{out_dir}/{keyword}", exist_ok=True)
 
 def add_prefix_suffix(keyword, prefix=None, suffix=None):
 	if prefix != None:
@@ -123,7 +113,6 @@ def scrape_images(keyword, search_engine, output_directory, num_images=None):
 	print(f"URL: {url}")
 
 	browser.get(url)
-	browser.get_log('browser')
 	time.sleep(1)
 
 	extractor.src = []
@@ -181,7 +170,10 @@ def scrape_images(keyword, search_engine, output_directory, num_images=None):
 
 		count+=1
 
-	print(f"Downloaded {count}/{num_images} images")
+	if num_images != None:
+		print(f"Downloaded {count}/{num_images} images")
+	else:
+		print(f"Downloaded {count}/{len_src} images")
 
 
 def main(keyword, search_engine, out_dir, num_images):
@@ -194,8 +186,9 @@ def main(keyword, search_engine, out_dir, num_images):
 	if search_engine != "all":
 		scrape_images(keyword=keyword, search_engine=search_engine, output_directory=output_directory, num_images=num_images)
 	else:
-		for each_se in ['google', 'bing', 'yahoo', 'duckduckgo']:
-			scrape_images(keyword=keyword, search_engine=each_se, output_directory=output_directory, num_images=num_images)
+		num_images = [num_images // 4 + (1 if x < num_images % 4 else 0)  for x in range (4)]
+		for i, each_se in enumerate(['google', 'bing', 'yahoo', 'duckduckgo']):
+			scrape_images(keyword=keyword, search_engine=each_se, output_directory=output_directory, num_images=num_images[i])
 		
 	remove_duplicate_images(output_directory)
 	print('-' * 100)
@@ -210,9 +203,12 @@ if __name__ == "__main__":
 		sys.exit()
 
 	if args.f == None:
-		keyword = add_prefix_suffix(args.k, prefix=args.p, suffix=args.s)
-		main(keyword, args.se, args.o, args.n)
-		
+		try:
+			keyword = add_prefix_suffix(args.k, prefix=args.p, suffix=args.s)
+			main(keyword, args.se, args.o, args.n)
+		except:
+			print("Something went wrong!")
+			sys.exit()
 	else:
 		try:
 			with open(args.f, 'r') as infile:
@@ -220,7 +216,7 @@ if __name__ == "__main__":
 
 				for each in keywords:
 					if each != "":
-						keyword = add_prefix_suffix(each, prefix=args.p, suffix=args.s)
+						keyword = add_prefix_suffix(each, prefix=args.p, suffix=args.s).strip()
 						main(keyword, args.se, args.o, args.n)
 
 		except FileNotFoundError:
