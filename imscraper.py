@@ -12,18 +12,6 @@ import PIL.Image as Image
 
 import duplicate
 
-parser = argparse.ArgumentParser(description="Scrape images from the web")
-group = parser.add_mutually_exclusive_group(required=True)
-group.add_argument('-k', type=str, help="Keyword to search")
-group.add_argument('-f', type=str, help="File with list of keywords")
-group.add_argument('-c', type=str, help="Custom URL")
-parser.add_argument('-se', type=str, help="Search engine [google, bing, yahoo, duckduckgo, all] (default=all)", default="all")
-parser.add_argument('-n', type=int, help="Number of images per keyword. Downloads all images by default", default=None)
-parser.add_argument('-p', type=str, help="Keyword prefix", default=None)
-parser.add_argument('-s', type=str, help="Keyword suffix", default=None)
-parser.add_argument('-o', type=str, help="Output directory", default=None)
-args = parser.parse_args()	
-
 # Instantiate and connect to the chrome driver 
 def setup_browser():
 	operating_system = platform.system()
@@ -105,7 +93,8 @@ def get_img_data(url, src):
 
 	return img_data
 
-# Search for the specified keyword using the specified search engine, load the url on chrome using chromedriver, extract certain attribute values and then collect the images
+# Search for the specified keyword using the specified search engine, load the url on chrome 
+# using chromedriver, extract certain attribute values and then collect the images
 def scrape_images_search_engine(keyword, search_engine, output_directory, num_images=None):		
 	print(f"\nSearch engine: {search_engine}")
 
@@ -121,6 +110,12 @@ def scrape_images_search_engine(keyword, search_engine, output_directory, num_im
 	browser.get(url)
 	time.sleep(2)
 
+	scroll_count = {"google": 3, "bing": 3, "yahoo": 1, "duckduckgo": 5}
+	for _ in range(scroll_count[search_engine]):
+		browser.execute_script("window.scrollTo(0,document.body.scrollHeight)")
+		browser.execute_script("window.scrollTo(0,document.body.scrollHeight)")
+		time.sleep(2)
+
 	extractor.src = []
 
 	if search_engine == "google":
@@ -134,7 +129,7 @@ def scrape_images_search_engine(keyword, search_engine, output_directory, num_im
 		extractor.tag_attr = "src"
 		extractor.feed(browser.page_source)
 
-		extractor.src = list(map(lambda x: x.split('&')[0], extractor.src))
+		extractor.src = list(map(lambda x: x.split('?w')[0], extractor.src))
 		extractor.src = list(set(extractor.src))
 
 		extractor.src = filter_src_format(extractor.src)
@@ -250,6 +245,18 @@ if __name__ == "__main__":
 	browser = setup_browser()
 	extractor = Extractor()
 	http = urllib3.PoolManager()
+
+	parser = argparse.ArgumentParser(description="Scrape images from the web")
+	group = parser.add_mutually_exclusive_group(required=True)
+	group.add_argument('-k', type=str, help="Keyword to search")
+	group.add_argument('-f', type=str, help="File with list of keywords")
+	group.add_argument('-c', type=str, help="Custom URL")
+	parser.add_argument('-se', type=str, help="Search engine [google, bing, yahoo, duckduckgo, all] (default=all)", default="all")
+	parser.add_argument('-n', type=int, help="Number of images per keyword. Downloads all images by default", default=None)
+	parser.add_argument('-p', type=str, help="Keyword prefix", default=None)
+	parser.add_argument('-s', type=str, help="Keyword suffix", default=None)
+	parser.add_argument('-o', type=str, help="Output directory", default=None)
+	args = parser.parse_args()	
 
 	if args.c:
 		if args.o == None:
