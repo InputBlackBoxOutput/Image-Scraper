@@ -80,6 +80,8 @@ def filter_src_format(src_list):
 			filtered.append(each_src)
 		elif "https:" in each_src:
 			filtered.append(each_src)
+		else:
+			continue
 
 	return filtered
 
@@ -137,15 +139,12 @@ def scrape_images_search_engine(keyword, search_engine, output_directory, num_im
 
 		extractor.src = filter_src_format(extractor.src)
 
-		thumbnails_filtered = []
+		filtered = []
 		for each in extractor.src:
-			if each.startswith("https"):
-				if "?q" not in each:
-					thumbnails_filtered.append(each)
-			else:
-				thumbnails_filtered.append(each)
+			if "OIP" in each:
+				filtered.append(each)
 
-		extractor.src = thumbnails_filtered	
+		extractor.src = filtered	
 		
 	elif search_engine == "yahoo":
 		extractor.tag_attr = "src"
