@@ -21,5 +21,9 @@ ECHO Test 2: python imscraper.py -f test/keywords.txt -n 10 -o ./test/test2
 python imscraper.py -f test/keywords.txt -n 20 -o ./test/test2
 
 ECHO.
+ECHO Test 3: 
+python imscraper.py -c https://logodix.com/linux -o test/linux
+
+ECHO.
 ECHO Done
 PAUSE

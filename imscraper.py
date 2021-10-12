@@ -1,57 +1,28 @@
-import os, platform, sys, argparse, glob
+import os, platform, sys, argparse
 import time
 import base64
-import hashlib
 from io import BytesIO
 from html.parser import HTMLParser
-from urllib.parse import quote, unquote
+from urllib.parse import quote, unquote, urlparse
 
 from selenium import webdriver
 from tqdm import tqdm
 import urllib3
 import PIL.Image as Image
 
+import duplicate
+
 parser = argparse.ArgumentParser(description="Scrape images from the web")
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument('-k', type=str, help="Keyword to search")
 group.add_argument('-f', type=str, help="File with list of keywords")
+group.add_argument('-c', type=str, help="Custom URL")
 parser.add_argument('-se', type=str, help="Search engine [google, bing, yahoo, duckduckgo, all] (default=all)", default="all")
 parser.add_argument('-n', type=int, help="Number of images per keyword. Downloads all images by default", default=None)
 parser.add_argument('-p', type=str, help="Keyword prefix", default=None)
 parser.add_argument('-s', type=str, help="Keyword suffix", default=None)
 parser.add_argument('-o', type=str, help="Output directory", default=None)
-args = parser.parse_args()
-
-# Get the SHA-256 hash of a file
-def sha256(fname, size=4096):
- 
-	sha256_hash = hashlib.sha256()
-	with open(fname, 'rb') as f:
-		for byte_block in iter(lambda: f.read(4096), b""):
-			sha256_hash.update(byte_block)
-		
-	return sha256_hash.hexdigest()
-
-# Find difference between files using SHA-256 and remove duplicates
-def remove_duplicate_images(directory):
-	print("\nChecking for duplicate images by comparing SHA-256 hash")
-	flag = False
-
-	file_list = glob.glob(f"{directory}/*.png")
-
-	unique = []
-	for file in file_list:
-		filehash = sha256(file)
-
-		if filehash not in unique:
-			unique.append(filehash)
-		else:
-			print(f"Removing duplicate image: {file}")
-			os.remove(file)	
-			flag = True
-			
-	if flag == False:
-		print("No duplicate images found")	
+args = parser.parse_args()	
 
 # Instantiate and connect to the chrome driver 
 def setup_browser():
@@ -165,10 +136,10 @@ def scrape_images(keyword, search_engine, output_directory, num_images=None):
 			image = Image.open(img_data).convert("RGBA")
 			image.save(f"{output_directory}/{search_engine[0]}-{count+1}.png")
 			
-		except:
-			pass
+			count+=1
 
-		count+=1
+		except:
+			print(f"Something went wrong while scraping the image at URL:\n{each_src}")
 
 	if num_images != None:
 		print(f"Downloaded {count}/{num_images} images")
@@ -194,25 +165,91 @@ def main(keyword, search_engine, out_dir, num_images):
 			for each_se in ['google', 'bing', 'yahoo', 'duckduckgo']:
 				scrape_images(keyword=keyword, search_engine=each_se, output_directory=output_directory, num_images=num_images)
 		
-	remove_duplicate_images(output_directory)
+	duplicate.remove_duplicate_images(output_directory)
+
+	print(f"\nImages saved in directory: {output_directory} ")
 	print('-' * 80)
+
+
+def scrape_images_custom(url, output_directory, num_images=None):	
+	os.makedirs(output_directory, exist_ok=True)
+
+	browser.get(url)
+	time.sleep(1)
+	
+	extractor.tag_attr = "src"
+	extractor.feed(browser.page_source)
+
+	len_src = len(extractor.src)
+	print(f"Number of images found: {len_src}")
+
+	if num_images != None:
+		src_list = extractor.src[:num_images]
+	else:
+		src_list = extractor.src
+
+	filtered_src_list = []
+	for each_src in src_list:
+		if not ".webp" in each_src and not ".gif" in each_src:
+			if not ".svg" in each_src and not ".." in each_src:
+				filtered_src_list.append(each_src)
+
+	count = 0
+	for each_src in tqdm(filtered_src_list):
+		try:
+			if "https:" in each_src:
+				response = http.request('GET', each_src)
+				img_data = BytesIO(response.data)
+
+			elif each_src.endswith(".png") or each_src.endswith(".jpg"):
+				base_url = urlparse(url).netloc
+				each_src = base_url + each_src
+
+				response = http.request('GET', each_src)
+				img_data = BytesIO(response.data)
+
+			else:
+				each_src = each_src.split(',')[-1]
+				img_data = base64.b64decode(each_src)
+				img_data = BytesIO(img_data)
+
+			image = Image.open(img_data).convert("RGBA")
+			image.save(f"{output_directory}/{count+1}.png")
+
+			count+=1
+		except:
+			print(f"Something went wrong while scraping the image at URL:\n{each_src}")
+
+	if num_images != None:
+		print(f"Downloaded {count}/{num_images} images")
+	else:
+		print(f"Downloaded {count}/{len_src} images")
 
 if __name__ == "__main__":
 	browser = setup_browser()
 	extractor = Extractor()
 	http = urllib3.PoolManager()
 
+	if args.c:
+		if args.o == None:
+			args.o = "custom"
+		
+		scrape_images_custom(args.c, args.o, args.n)
+		print(f"\nImages saved in directory: {args.o}")
+
+		sys.exit()
+
 	if args.se not in ['google', 'bing', 'yahoo', 'duckduckgo', 'all']:
 		print("Search engine needs to be one of the following: google, bing, yahoo, duckduckgo or all")
 		sys.exit()
 
 	if args.f == None:
-		# try:
-		keyword = add_prefix_suffix(args.k, prefix=args.p, suffix=args.s)
-		main(keyword, args.se, args.o, args.n)
-		# except:
-			# print("Something went wrong!")
-			# sys.exit()
+		try:
+			keyword = add_prefix_suffix(args.k, prefix=args.p, suffix=args.s)
+			main(keyword, args.se, args.o, args.n)
+		except:
+			print("Something went wrong!")
+			sys.exit()
 	else:
 		try:
 			with open(args.f, 'r') as infile:
