@@ -70,8 +70,41 @@ def add_prefix_suffix(keyword, prefix=None, suffix=None):
 	
 	return keyword
 
+def filter_src_format(src_list):
+	filtered = []
+
+	for each_src in src_list:
+		if ".png" in each_src or ".jpg" in each_src or ".jpeg" in each_src:
+			filtered.append(each_src)
+		elif "/png" in each_src or "/jpg" in each_src or "/jpeg" in each_src:
+			filtered.append(each_src)
+		elif "https:" in each_src:
+			filtered.append(each_src)
+
+	return filtered
+
+
+def get_img_data(url, src):
+	if "https:" in src or "www." in src:
+		response = http.request('GET', src)
+		img_data = BytesIO(response.data)
+
+	elif src.endswith(".png") or src.endswith(".jpg"):
+		base_url = urlparse(url).netloc
+		src = base_url + src
+
+		response = http.request('GET', src)
+		img_data = BytesIO(response.data)
+
+	else:
+		src = src.split(',')[-1]
+		img_data = base64.b64decode(src)
+		img_data = BytesIO(img_data)
+
+	return img_data
+
 # Search for the specified keyword using the specified search engine, load the url on chrome using chromedriver, extract certain attribute values and then collect the images
-def scrape_images(keyword, search_engine, output_directory, num_images=None):		
+def scrape_images_search_engine(keyword, search_engine, output_directory, num_images=None):		
 	print(f"\nSearch engine: {search_engine}")
 
 	search_engine_urls = {
@@ -84,7 +117,7 @@ def scrape_images(keyword, search_engine, output_directory, num_images=None):
 	print(f"URL: {url}")
 
 	browser.get(url)
-	time.sleep(1)
+	time.sleep(2)
 
 	extractor.src = []
 
@@ -96,12 +129,24 @@ def scrape_images(keyword, search_engine, output_directory, num_images=None):
 		extractor.feed(browser.page_source)
 
 	elif search_engine == "bing":
-		extractor.tag_attr = "src2"
+		extractor.tag_attr = "src"
 		extractor.feed(browser.page_source)
 
 		extractor.src = list(map(lambda x: x.split('&')[0], extractor.src))
 		extractor.src = list(set(extractor.src))
 
+		extractor.src = filter_src_format(extractor.src)
+
+		thumbnails_filtered = []
+		for each in extractor.src:
+			if each.startswith("https"):
+				if "?q" not in each:
+					thumbnails_filtered.append(each)
+			else:
+				thumbnails_filtered.append(each)
+
+		extractor.src = thumbnails_filtered	
+		
 	elif search_engine == "yahoo":
 		extractor.tag_attr = "src"
 		extractor.feed(browser.page_source)
@@ -126,16 +171,11 @@ def scrape_images(keyword, search_engine, output_directory, num_images=None):
 	count = 0
 	for each_src in tqdm(src_list):
 		try:
-			if "https://" in each_src:
-				response = http.request('GET', each_src)
-				img_data = BytesIO(response.data)
-			else:
-				img_data = base64.b64decode(each_src.split(',')[-1])
-				img_data = BytesIO(img_data)
+			img_data = get_img_data(url, each_src)
 
 			image = Image.open(img_data).convert("RGBA")
 			image.save(f"{output_directory}/{search_engine[0]}-{count+1}.png")
-			
+				
 			count+=1
 
 		except:
@@ -147,7 +187,7 @@ def scrape_images(keyword, search_engine, output_directory, num_images=None):
 		print(f"Downloaded {count}/{len_src} images")
 
 
-def main(keyword, search_engine, out_dir, num_images):
+def search_scrape(keyword, search_engine, out_dir, num_images):
 	print('\n' + '-' * 80)
 	print(f"Keyword: {keyword}")
 
@@ -155,15 +195,15 @@ def main(keyword, search_engine, out_dir, num_images):
 	output_directory = keyword if out_dir == None else f"{out_dir}/{keyword}"
 
 	if search_engine != "all":
-		scrape_images(keyword=keyword, search_engine=search_engine, output_directory=output_directory, num_images=num_images)
+		scrape_images_search_engine(keyword=keyword, search_engine=search_engine, output_directory=output_directory, num_images=num_images)
 	else:
 		if num_images != None:
 			num_images = [num_images // 4 + (1 if x < num_images % 4 else 0)  for x in range (4)]
 			for i, each_se in enumerate(['google', 'bing', 'yahoo', 'duckduckgo']):
-				scrape_images(keyword=keyword, search_engine=each_se, output_directory=output_directory, num_images=num_images[i])
+				scrape_images_search_engine(keyword=keyword, search_engine=each_se, output_directory=output_directory, num_images=num_images[i])
 		else:
 			for each_se in ['google', 'bing', 'yahoo', 'duckduckgo']:
-				scrape_images(keyword=keyword, search_engine=each_se, output_directory=output_directory, num_images=num_images)
+				scrape_images_search_engine(keyword=keyword, search_engine=each_se, output_directory=output_directory, num_images=num_images)
 		
 	duplicate.remove_duplicate_images(output_directory)
 
@@ -175,7 +215,7 @@ def scrape_images_custom(url, output_directory, num_images=None):
 	os.makedirs(output_directory, exist_ok=True)
 
 	browser.get(url)
-	time.sleep(1)
+	time.sleep(2)
 	
 	extractor.tag_attr = "src"
 	extractor.feed(browser.page_source)
@@ -188,30 +228,12 @@ def scrape_images_custom(url, output_directory, num_images=None):
 	else:
 		src_list = extractor.src
 
-	filtered_src_list = []
-	for each_src in src_list:
-		if not ".webp" in each_src and not ".gif" in each_src:
-			if not ".svg" in each_src and not ".." in each_src:
-				filtered_src_list.append(each_src)
+	src_list = filter_src_format(src_list)
 
 	count = 0
-	for each_src in tqdm(filtered_src_list):
+	for each_src in tqdm(src_list):
 		try:
-			if "https:" in each_src:
-				response = http.request('GET', each_src)
-				img_data = BytesIO(response.data)
-
-			elif each_src.endswith(".png") or each_src.endswith(".jpg"):
-				base_url = urlparse(url).netloc
-				each_src = base_url + each_src
-
-				response = http.request('GET', each_src)
-				img_data = BytesIO(response.data)
-
-			else:
-				each_src = each_src.split(',')[-1]
-				img_data = base64.b64decode(each_src)
-				img_data = BytesIO(img_data)
+			img_data = get_img_data(url, each_src)
 
 			image = Image.open(img_data).convert("RGBA")
 			image.save(f"{output_directory}/{count+1}.png")
@@ -246,7 +268,7 @@ if __name__ == "__main__":
 	if args.f == None:
 		try:
 			keyword = add_prefix_suffix(args.k, prefix=args.p, suffix=args.s)
-			main(keyword, args.se, args.o, args.n)
+			search_scrape(keyword, args.se, args.o, args.n)
 		except:
 			print("Something went wrong!")
 			sys.exit()
@@ -258,7 +280,7 @@ if __name__ == "__main__":
 				for each in keywords:
 					if each != "":
 						keyword = add_prefix_suffix(each, prefix=args.p, suffix=args.s).strip()
-						main(keyword, args.se, args.o, args.n)
+						search_scrape(keyword, args.se, args.o, args.n)
 
 		except FileNotFoundError:
 			print(f"\nFile not found: {args.f}")

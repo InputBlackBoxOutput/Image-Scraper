@@ -13,15 +13,15 @@ ECHO cat >> test/keywords.txt
 ECHO apple >> test/keywords.txt
 
 ECHO.
-ECHO Test 1: python imscraper.py -k fan -p table -se google -o ./test/test1
-python imscraper.py -k fan -p table -se google -o ./test/test1
+ECHO Test 1: python imscraper.py -k fan -p table -se bing -o ./test/test1
+python imscraper.py -k fan -p table -se bing -o ./test/test1
 
 ECHO.
-ECHO Test 2: python imscraper.py -f test/keywords.txt -n 10 -o ./test/test2
+ECHO Test 2: python imscraper.py -f test/keywords.txt -n 20 -o ./test/test2
 python imscraper.py -f test/keywords.txt -n 20 -o ./test/test2
 
 ECHO.
-ECHO Test 3: 
+ECHO Test 3: python imscraper.py -c https://logodix.com/linux -o test/linux
 python imscraper.py -c https://logodix.com/linux -o test/linux
 
 ECHO.
