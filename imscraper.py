@@ -200,6 +200,7 @@ def search_scrape(keyword, search_engine, out_dir, num_images):
 				scrape_images_search_engine(keyword=keyword, search_engine=each_se, output_directory=output_directory, num_images=num_images)
 		
 	duplicate.remove_duplicate_images(output_directory)
+	duplicate.remove_similar_images(output_directory, similarity_threshold=0.90)
 
 	print(f"\nImages saved in directory: {output_directory} ")
 	print('-' * 80)
