@@ -132,8 +132,6 @@ def scrape_images_search_engine(keyword, search_engine, output_directory, num_im
 		extractor.src = list(map(lambda x: x.split('?w')[0], extractor.src))
 		extractor.src = list(set(extractor.src))
 
-		extractor.src = filter_src_format(extractor.src)
-
 		filtered = []
 		for each in extractor.src:
 			if "OIP" in each:
@@ -154,6 +152,7 @@ def scrape_images_search_engine(keyword, search_engine, output_directory, num_im
 
 		extractor.src = list(map(lambda x: unquote(x.split('?')[-1][2:]), extractor.src))
 
+	extractor.src = filter_src_format(extractor.src)
 	len_src = len(extractor.src)
 	print(f"Number of images found: {len_src}")
 
