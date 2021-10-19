@@ -241,11 +241,10 @@ def scrape_images_custom(url, output_directory, num_images=None):
 	else:
 		print(f"Downloaded {count}/{len_src} images")
 
-if __name__ == "__main__":
-	browser = setup_browser()
-	extractor = Extractor()
-	http = urllib3.PoolManager()
 
+
+
+if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Scrape images from the web")
 	group = parser.add_mutually_exclusive_group(required=True)
 	group.add_argument('-k', type=str, help="Keyword to search")
@@ -255,9 +254,13 @@ if __name__ == "__main__":
 	parser.add_argument('-n', type=int, help="Number of images per keyword. Downloads all images by default", default=None)
 	parser.add_argument('-p', type=str, help="Keyword prefix", default=None)
 	parser.add_argument('-s', type=str, help="Keyword suffix", default=None)
-	parser.add_argument('-st', type=int, help="Similarity Threshold (default = 98%)", default=98)
+	parser.add_argument('-st', type=int, help="Similarity threshold (default = 98 percent)", default=98)
 	parser.add_argument('-o', type=str, help="Output directory", default=None)
 	args = parser.parse_args()	
+
+	browser = setup_browser()
+	extractor = Extractor()
+	http = urllib3.PoolManager()
 
 	if args.c:
 		if args.o == None:
