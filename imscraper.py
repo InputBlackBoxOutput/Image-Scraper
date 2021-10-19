@@ -180,7 +180,7 @@ def scrape_images_search_engine(keyword, search_engine, output_directory, num_im
 		print(f"Downloaded {count}/{len_src} images")
 
 
-def search_scrape(keyword, search_engine, out_dir, num_images):
+def search_scrape(keyword, search_engine, out_dir, num_images, similarity_threshold=0.98):
 	print('\n' + '-' * 80)
 	print(f"Keyword: {keyword}")
 
@@ -199,7 +199,7 @@ def search_scrape(keyword, search_engine, out_dir, num_images):
 				scrape_images_search_engine(keyword=keyword, search_engine=each_se, output_directory=output_directory, num_images=num_images)
 		
 	duplicate.remove_duplicate_images(output_directory)
-	duplicate.remove_similar_images(output_directory, similarity_threshold=0.90)
+	duplicate.remove_similar_images(output_directory, similarity_threshold)
 
 	print(f"\nImages saved in directory: {output_directory} ")
 	print('-' * 80)
@@ -255,6 +255,7 @@ if __name__ == "__main__":
 	parser.add_argument('-n', type=int, help="Number of images per keyword. Downloads all images by default", default=None)
 	parser.add_argument('-p', type=str, help="Keyword prefix", default=None)
 	parser.add_argument('-s', type=str, help="Keyword suffix", default=None)
+	parser.add_argument('-st', type=int, help="Similarity Threshold (default = 98%)", default=98)
 	parser.add_argument('-o', type=str, help="Output directory", default=None)
 	args = parser.parse_args()	
 
@@ -274,7 +275,7 @@ if __name__ == "__main__":
 	if args.f == None:
 		try:
 			keyword = add_prefix_suffix(args.k, prefix=args.p, suffix=args.s)
-			search_scrape(keyword, args.se, args.o, args.n)
+			search_scrape(keyword, args.se, args.o, args.n, args.st/100)
 		except:
 			print("Something went wrong!")
 			sys.exit()
@@ -286,7 +287,7 @@ if __name__ == "__main__":
 				for each in keywords:
 					if each != "":
 						keyword = add_prefix_suffix(each, prefix=args.p, suffix=args.s).strip()
-						search_scrape(keyword, args.se, args.o, args.n)
+						search_scrape(keyword, args.se, args.o, args.n, args.st//100)
 
 		except FileNotFoundError:
 			print(f"\nFile not found: {args.f}")
